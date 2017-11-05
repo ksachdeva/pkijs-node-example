@@ -1,9 +1,6 @@
-// tslint:disable-next-line:no-var-requires
-const WebCrypto = require('node-webcrypto-ossl');
-
+import WebCrypto = require('node-webcrypto-ossl');
 import * as asn1js from 'asn1js';
 import pkijs = require('pkijs');
-
 import * as nodeSpecificCrypto from './node-crypto';
 
 const {
@@ -25,21 +22,15 @@ setEngine('nodeEngine', nodeSpecificCrypto, new CryptoEngine({
     name: 'nodeEngine'
 }));
 
-let certificateBuffer = new ArrayBuffer(0); // ArrayBuffer with loaded or created CERT
-let privateKeyBuffer = new ArrayBuffer(0);
-let trustedCertificates = []; // Array of root certificates from "CA Bundle"
-
 const hashAlg = 'SHA-1';
 const signAlg = 'RSASSA-PKCS1-v1_5';
 
-async function createCertificateInternal(): Promise<void> {
+async function createCertificateInternal(): Promise<{
+    certificate: ArrayBuffer;
+    privateKey: ArrayBuffer
+}> {
 
     const certificate = new Certificate();
-
-    let publicKey;
-    let privateKey;
-
-    trustedCertificates = [];
 
     const crypto = getCrypto();
     if (typeof crypto === 'undefined') {
@@ -106,13 +97,16 @@ async function createCertificateInternal(): Promise<void> {
         algorithm.algorithm.hash.name = hashAlg;
     }
 
+    let keyPair = null;
+
     try {
-        const keyPair = await crypto.generateKey(algorithm.algorithm, true, algorithm.usages);
-        publicKey = keyPair.publicKey;
-        privateKey = keyPair.privateKey;
+        keyPair = await crypto.generateKey(algorithm.algorithm, true, algorithm.usages);
     } catch (error) {
         throw new Error(`Error during key generation: ${error}`);
     }
+
+    const publicKey = keyPair.publicKey;
+    const privateKey = keyPair.privateKey;
 
     // Exporting public key into "subjectPublicKeyInfo" value of certificate
     await certificate.subjectPublicKeyInfo.importKey(publicKey);
@@ -124,12 +118,17 @@ async function createCertificateInternal(): Promise<void> {
         throw new Error(`Error during signing: ${error}`);
     }
 
-    // Encode and store certificate
-    trustedCertificates.push(certificate);
-    certificateBuffer = certificate.toSchema(true).toBER(false);
+    // Encode certificate
+    const certificateBuffer = certificate.toSchema(true).toBER(false);
 
     try {
-        privateKeyBuffer = await crypto.exportKey('pkcs8', privateKey);
+        const privateKeyBuffer = await crypto.exportKey('pkcs8', privateKey);
+
+        return {
+            certificate: certificateBuffer,
+            privateKey: privateKeyBuffer
+        };
+
     } catch (error) {
         throw new Error(`Error during exporting of private key: ${error}`);
     }
@@ -156,10 +155,10 @@ function formatPEM(pemString) {
 
 async function createCertificate() {
 
-    await createCertificateInternal();
+    const { certificate, privateKey } = await createCertificateInternal();
 
     const certificateString =
-        String.fromCharCode.apply(null, new Uint8Array(certificateBuffer));
+        String.fromCharCode.apply(null, new Uint8Array(certificate));
 
     const base64Str = Buffer.from(certificateString).toString('base64');
 
@@ -169,7 +168,7 @@ async function createCertificate() {
 
     console.log('Certificate created successfully!');
 
-    const privateKeyString = String.fromCharCode.apply(null, new Uint8Array(privateKeyBuffer));
+    const privateKeyString = String.fromCharCode.apply(null, new Uint8Array(privateKey));
 
     const base64Str2 = Buffer.from(privateKeyString).toString('base64');
 
