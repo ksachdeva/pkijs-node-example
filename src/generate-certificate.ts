@@ -2,41 +2,28 @@
 const WebCrypto = require('node-webcrypto-ossl');
 
 import * as asn1js from 'asn1js';
-import { stringToArrayBuffer, arrayBufferToString, fromBase64, toBase64 } from 'pvutils';
 import pkijs = require('pkijs');
 
-const Certificate = pkijs.Certificate;
-const AttributeCertificateV1 = pkijs.AttributeCertificateV1;
-const PrivateKeyInfo = pkijs.PrivateKeyInfo;
-const AuthenticatedSafe = pkijs.AuthenticatedSafe;
-const SafeContents = pkijs.SafeContents;
-const SafeBag = pkijs.SafeBag;
-const CertBag = pkijs.CertBag;
-const PFX = pkijs.PFX;
-const Attribute = pkijs.Attribute;
-const PKCS8ShroudedKeyBag = pkijs.PKCS8ShroudedKeyBag;
-const AttributeTypeAndValue = pkijs.AttributeTypeAndValue;
-const BasicConstraints = pkijs.BasicConstraints;
-const Extension = pkijs.Extension;
+import * as nodeSpecificCrypto from './node-crypto';
 
-const getAlgorithmParameters = pkijs.getAlgorithmParameters;
-const getRandomValues = pkijs.getRandomValues;
-const setEngine = pkijs.setEngine;
-const getCrypto = pkijs.getCrypto;
-const getEngine = pkijs.getEngine;
-const CryptoEngine = pkijs.CryptoEngine;
+const {
+    Certificate,
+    CryptoEngine,
+    setEngine,
+    getCrypto,
+    AttributeTypeAndValue,
+    BasicConstraints,
+    Extension,
+    getAlgorithmParameters
+} = pkijs;
 
 const webcrypto = new WebCrypto();
-
-import * as nodeSpecificCrypto from './node-crypto';
 
 setEngine('nodeEngine', nodeSpecificCrypto, new CryptoEngine({
     crypto: nodeSpecificCrypto,
     subtle: webcrypto.subtle,
     name: 'nodeEngine'
 }));
-
-// console.log(getEngine());
 
 let certificateBuffer = new ArrayBuffer(0); // ArrayBuffer with loaded or created CERT
 let privateKeyBuffer = new ArrayBuffer(0);
