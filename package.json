@@ -4,7 +4,7 @@
   "description": "An example showing how to use PKIJS with node",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "gen-cert": "ts-node src/generate-certificate.ts"
   },
   "repository": {
     "type": "git",
