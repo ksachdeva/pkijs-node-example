@@ -25,6 +25,18 @@ setEngine('nodeEngine', nodeSpecificCrypto, new CryptoEngine({
 const hashAlg = 'SHA-1';
 const signAlg = 'RSASSA-PKCS1-v1_5';
 
+function btoa(str) {
+    let buffer;
+
+    if (str instanceof Buffer) {
+        buffer = str;
+    } else {
+        buffer = new Buffer(str.toString(), 'binary');
+    }
+
+    return buffer.toString('base64');
+}
+
 async function createCertificateInternal(): Promise<{
     certificate: ArrayBuffer;
     privateKey: ArrayBuffer
@@ -160,20 +172,16 @@ async function createCertificate() {
     const certificateString =
         String.fromCharCode.apply(null, new Uint8Array(certificate));
 
-    const base64Str = Buffer.from(certificateString).toString('base64');
-
     let resultString = '-----BEGIN CERTIFICATE-----\r\n';
-    resultString = `${resultString}${formatPEM(base64Str)}`;
+    resultString = `${resultString}${formatPEM(btoa(certificateString))}`;
     resultString = `${resultString}\r\n-----END CERTIFICATE-----\r\n`;
 
     console.log('Certificate created successfully!');
 
     const privateKeyString = String.fromCharCode.apply(null, new Uint8Array(privateKey));
 
-    const base64Str2 = Buffer.from(privateKeyString).toString('base64');
-
     resultString = `${resultString}\r\n-----BEGIN PRIVATE KEY-----\r\n`;
-    resultString = `${resultString}${formatPEM(base64Str2)}`;
+    resultString = `${resultString}${formatPEM(btoa(privateKeyString))}`;
     resultString = `${resultString}\r\n-----END PRIVATE KEY-----\r\n`;
 
     console.log(resultString);
